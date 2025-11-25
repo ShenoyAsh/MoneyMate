@@ -9,7 +9,8 @@
     "start": "next start",
     "lint": "eslint",
     "tw": "tailwindcss -v",
-    "tw-init": "tailwindcss init -p"
+    "tw-init": "tailwindcss init -p",
+    "postinstall": "prisma generate"
   },
   "dependencies": {
     "@arcjet/next": "^1.0.0-beta.15",
