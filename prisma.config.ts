@@ -9,6 +9,8 @@ export default defineConfig({
     path: "prisma/migrations",
   },
   datasource: {
-    url: env("DATABASE_URL"),
+    // url is for the connection pooler (port 6543)
+    url: env("DIRECT_URL"),
+    // directUrl is for migrations (port 5432)
   },
 });
