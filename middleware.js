@@ -1,4 +1,4 @@
-import { createMiddleware, detectBot } from '@arcjet/next';
+import arcjet, { createMiddleware, detectBot, shield } from "@arcjet/next";
 import { clerkMiddleware } from '@clerk/nextjs/server';
 import {  createRouteMatcher } from "@clerk/nextjs/server";
 const isProtectedRoute=createRouteMatcher([

@@ -42,7 +42,13 @@ export function BudgetProgress({ initialBudget, currentExpenses }) {
       return;
     }
 
-    await updateBudgetFn(amount);
+    const result = await updateBudgetFn(amount);
+    
+    // Logic moved from useEffect to here
+    if (result?.success) {
+      setIsEditing(false);
+      toast.success("Budget updated successfully");
+    }
   };
 
   const handleCancel = () => {
@@ -50,12 +56,7 @@ export function BudgetProgress({ initialBudget, currentExpenses }) {
     setIsEditing(false);
   };
 
-  useEffect(() => {
-    if (updatedBudget?.success) {
-      setIsEditing(false);
-      toast.success("Budget updated successfully");
-    }
-  }, [updatedBudget]);
+  // Deleted the useEffect that was causing the lint error
 
   useEffect(() => {
     if (error) {
@@ -121,19 +122,19 @@ export function BudgetProgress({ initialBudget, currentExpenses }) {
           </div>
         </div>
       </CardHeader>
-      <CardContent>
-        {initialBudget && (
-          <div className="space-y-2">
-            <Progress
-              value={percentUsed}
-              extraStyles={`${
-                percentUsed >= 90
-                  ? "bg-red-500"
-                  : percentUsed >= 75
-                    ? "bg-yellow-500"
-                    : "bg-green-500"
-              }`}
-            />
+      <CardContent>
+        {initialBudget && (
+          <div className="space-y-2">
+            <Progress
+              value={percentUsed}
+              extraStyles={`${
+                percentUsed >= 90
+                  ? "bg-red-500"
+                  : percentUsed >= 75
+                  ? "bg-yellow-500"
+                  : "bg-green-500"
+              }`}
+            />
             <p className="text-xs text-muted-foreground text-right">
               {percentUsed.toFixed(1)}% used
             </p>
