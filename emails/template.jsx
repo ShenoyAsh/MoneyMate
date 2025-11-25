@@ -48,7 +48,7 @@ const PREVIEW_DATA = {
 export default function EmailTemplate({
   userName = "",
   type = "monthly-report",
-  data = {},
+  data = PREVIEW_DATA.monthlyReport.data,
 }) {
   if (type === "monthly-report") {
     return (
