@@ -305,16 +305,16 @@ export function AddTransactionForm({
       )}
 
       {/* Actions */}
-      <div className="flex gap-4">
+     <div className="flex items-center justify-end gap-4">
         <Button
           type="button"
           variant="outline"
-          className="w-full"
+          className="w-full sm:w-auto"
           onClick={() => router.back()}
         >
           Cancel
         </Button>
-        <Button type="submit" className="w-full" disabled={transactionLoading}>
+        <Button type="submit" className="w-full sm:w-auto" disabled={transactionLoading}>
           {transactionLoading ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
