@@ -31,13 +31,13 @@ export default async function RootLayout({ children }) {
   // -----------------------------
 
   return (
-    <ClerkProvider>
+    
       <html lang="en">
-        {/* ... rest of your layout code ... */}
         <head>
           <link rel="icon" href="/logo-sm.png" sizes="any" />
         </head>
         <body className={`${inter.className}`}>
+          <ClerkProvider>
           <Header />
           <main className="min-h-screen">{children}</main>
           <Toaster richColors />
@@ -46,8 +46,8 @@ export default async function RootLayout({ children }) {
               <p>Made with 💗 by Team-8</p>
             </div>
           </footer>
-        </body>
-      </html>
     </ClerkProvider>
+      </body>
+      </html>
   );
 }

@@ -228,9 +228,32 @@ export async function getUserTransactions(query = {}) {
 }
 
 // Scan Receipt
+// ... keep your imports at the top ...
+
 export async function scanReceipt(file) {
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const model = genAI.getGenerativeModel({
+      model: "gemini-2.5-flash",
+      // 1. Add Safety Settings to prevent blocking
+      safetySettings: [
+        {
+          category: "HARM_CATEGORY_HARASSMENT",
+          threshold: "BLOCK_NONE",
+        },
+        {
+          category: "HARM_CATEGORY_HATE_SPEECH",
+          threshold: "BLOCK_NONE",
+        },
+        {
+          category: "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+          threshold: "BLOCK_NONE",
+        },
+        {
+          category: "HARM_CATEGORY_DANGEROUS_CONTENT",
+          threshold: "BLOCK_NONE",
+        },
+      ],
+    });
 
     // Convert File to ArrayBuffer
     const arrayBuffer = await file.arrayBuffer();
@@ -254,7 +277,7 @@ export async function scanReceipt(file) {
         "category": "string"
       }
 
-      If its not a recipt, return an empty object
+      If its not a receipt, return an empty object
     `;
 
     const result = await model.generateContent([
@@ -269,10 +292,20 @@ export async function scanReceipt(file) {
 
     const response = await result.response;
     const text = response.text();
-    const cleanedText = text.replace(/```(?:json)?\n?/g, "").trim();
+    console.log("AI Raw Response:", text); // 2. Log raw response for debugging
+
+    // 3. Better JSON cleaning logic
+    const cleanedText = text.replace(/```(?:json)?\n?/g, "").replace(/```/g, "").trim();
+    
+    // 4. Extract JSON object if extra text surrounds it
+    const jsonStart = cleanedText.indexOf("{");
+    const jsonEnd = cleanedText.lastIndexOf("}");
+    const finalJson = (jsonStart !== -1 && jsonEnd !== -1) 
+      ? cleanedText.substring(jsonStart, jsonEnd + 1) 
+      : cleanedText;
 
     try {
-      const data = JSON.parse(cleanedText);
+      const data = JSON.parse(finalJson);
       return {
         amount: parseFloat(data.amount),
         date: new Date(data.date),
@@ -282,11 +315,13 @@ export async function scanReceipt(file) {
       };
     } catch (parseError) {
       console.error("Error parsing JSON response:", parseError);
+      console.error("Cleaned Text was:", finalJson);
       throw new Error("Invalid response format from Gemini");
     }
   } catch (error) {
     console.error("Error scanning receipt:", error);
-    throw new Error("Failed to scan receipt");
+    // 5. Throw the REAL error message to the frontend so you can see it
+    throw new Error(error.message || "Failed to scan receipt");
   }
 }
 
@@ -318,7 +353,7 @@ export async function processVoiceCommand(command) {
     if (!userId) throw new Error("Unauthorized");
 
     // Use the fixed model name
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
     // Get categories to help AI match correctly
     const categoriesList = defaultCategories.map((c) => c.id).join(", ");

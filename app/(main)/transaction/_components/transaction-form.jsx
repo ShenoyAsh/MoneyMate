@@ -1,6 +1,6 @@
 "use client";
-import { VoiceScanner } from "./voice-scanner";
-import { useEffect } from "react";
+
+import { useState, useEffect, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { CalendarIcon, Loader2 } from "lucide-react";
@@ -30,6 +30,7 @@ import { cn } from "@/lib/utils";
 import { createTransaction, updateTransaction } from "@/actions/transaction";
 import { transactionSchema } from "@/app/lib/schema";
 import { ReceiptScanner } from "./recipt-scanner";
+import { VoiceScanner } from "./voice-scanner";
 
 export function AddTransactionForm({
   accounts,
@@ -94,25 +95,28 @@ export function AddTransactionForm({
     }
   };
 
- const handleScanComplete = (data) => {
-    if (data) {
-      setValue("amount", data.amount.toString());
-      setValue("date", new Date(data.date));
-      
-      if (data.description) {
-        setValue("description", data.description);
+  // FIXED: Wrapped in useCallback to prevent infinite loop
+  const handleScanComplete = useCallback(
+    (data) => {
+      if (data) {
+        setValue("amount", data.amount.toString());
+        setValue("date", new Date(data.date));
+
+        if (data.description) {
+          setValue("description", data.description);
+        }
+        if (data.category) {
+          setValue("category", data.category);
+        }
+        if (data.type) {
+          setValue("type", data.type);
+        }
+
+        toast.success("Transaction details updated");
       }
-      if (data.category) {
-        setValue("category", data.category);
-      }
-      // Add this line to handle the type from voice commands
-      if (data.type) {
-        setValue("type", data.type);
-      }
-      
-      toast.success("Transaction details updated");
-    }
-  };
+    },
+    [setValue]
+  );
 
   useEffect(() => {
     if (transactionResult?.success && !transactionLoading) {
@@ -124,7 +128,7 @@ export function AddTransactionForm({
       reset();
       router.push(`/account/${transactionResult.data.accountId}`);
     }
-  }, [transactionResult, transactionLoading, editMode]);
+  }, [transactionResult, transactionLoading, editMode, reset, router]);
 
   const type = watch("type");
   const isRecurring = watch("isRecurring");
@@ -135,8 +139,8 @@ export function AddTransactionForm({
   );
 
   return (
-   <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-      {/* Replace the single ReceiptScanner line with this grid */}
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      {/* Receipt & Voice Scanners */}
       {!editMode && (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
           <ReceiptScanner onScanComplete={handleScanComplete} />
@@ -149,7 +153,8 @@ export function AddTransactionForm({
         <label className="text-sm font-medium">Type</label>
         <Select
           onValueChange={(value) => setValue("type", value)}
-          defaultValue={type}
+          defaultValue={type} 
+          value={type} // FIXED: Controlled value so it updates visually
         >
           <SelectTrigger>
             <SelectValue placeholder="Select type" />
@@ -184,6 +189,7 @@ export function AddTransactionForm({
           <Select
             onValueChange={(value) => setValue("accountId", value)}
             defaultValue={getValues("accountId")}
+            value={watch("accountId")} // FIXED: Controlled value
           >
             <SelectTrigger>
               <SelectValue placeholder="Select account" />
@@ -216,6 +222,7 @@ export function AddTransactionForm({
         <Select
           onValueChange={(value) => setValue("category", value)}
           defaultValue={getValues("category")}
+          value={watch("category")} // FIXED: Controlled value
         >
           <SelectTrigger>
             <SelectValue placeholder="Select category" />
@@ -296,6 +303,7 @@ export function AddTransactionForm({
           <Select
             onValueChange={(value) => setValue("recurringInterval", value)}
             defaultValue={getValues("recurringInterval")}
+            value={watch("recurringInterval")} // FIXED: Controlled value
           >
             <SelectTrigger>
               <SelectValue placeholder="Select interval" />
@@ -316,7 +324,7 @@ export function AddTransactionForm({
       )}
 
       {/* Actions */}
-     <div className="flex items-center justify-end gap-4">
+      <div className="flex items-center justify-end gap-4">
         <Button
           type="button"
           variant="outline"
@@ -325,7 +333,11 @@ export function AddTransactionForm({
         >
           Cancel
         </Button>
-        <Button type="submit" className="w-full sm:w-auto" disabled={transactionLoading}>
+        <Button
+          type="submit"
+          className="w-full sm:w-auto"
+          disabled={transactionLoading}
+        >
           {transactionLoading ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
