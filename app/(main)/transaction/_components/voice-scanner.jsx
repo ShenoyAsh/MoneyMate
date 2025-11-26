@@ -1,38 +1,50 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Mic, MicOff, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import useFetch from "@/hooks/use-fetch";
 import { processVoiceCommand } from "@/actions/transaction";
 
 export function VoiceScanner({ onScanComplete }) {
   const [isListening, setIsListening] = useState(false);
-  
-  const {
-    loading: voiceLoading,
-    fn: processVoiceFn,
-    data: voiceData,
-    error,
-  } = useFetch(processVoiceCommand);
+  const [isProcessing, setIsProcessing] = useState(false);
 
-  useEffect(() => {
-    if (voiceData && !voiceLoading) {
-      onScanComplete(voiceData);
-      toast.success("Voice command processed successfully");
+  const handleVoiceProcess = async (transcript) => {
+    if (!transcript) return;
+
+    // 1. Create a loading toast and SAVE THE ID
+    const toastId = toast.loading(`Processing: "${transcript}"`);
+    setIsProcessing(true);
+
+    try {
+      // 2. Call the Server Action directly
+      const data = await processVoiceCommand(transcript);
+      
+      // 3. Force the SAME toast ID to become Success
+      toast.success("Voice command processed successfully", {
+        id: toastId,
+      });
+
+      // 4. Update the form
+      onScanComplete(data);
+
+    } catch (error) {
+      console.error("Voice command error:", error);
+      
+      // 5. Force the SAME toast ID to become Error
+      toast.error(error.message || "Failed to process voice command", {
+        id: toastId,
+      });
+    } finally {
+      setIsProcessing(false);
     }
-  }, [voiceLoading, voiceData, onScanComplete]);
+  };
 
-  useEffect(() => {
-    if (error) {
-      toast.error(error.message || "Failed to process voice command");
-    }
-  }, [error]);
+  const startListening = useCallback(() => {
+    const SpeechRecognition =
+      window.SpeechRecognition || window.webkitSpeechRecognition;
 
-  const startListening = () => {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    
     if (!SpeechRecognition) {
       toast.error("Your browser does not support voice recognition");
       return;
@@ -52,11 +64,11 @@ export function VoiceScanner({ onScanComplete }) {
       setIsListening(false);
     };
 
-    recognition.onresult = async (event) => {
+    recognition.onresult = (event) => {
       const transcript = event.results[0][0].transcript;
       if (transcript) {
-        toast.loading(`Processing: "${transcript}"`);
-        await processVoiceFn(transcript);
+        // Call our manual handler instead of useFetch
+        handleVoiceProcess(transcript);
       }
     };
 
@@ -67,19 +79,21 @@ export function VoiceScanner({ onScanComplete }) {
     };
 
     recognition.start();
-  };
+  }, [onScanComplete]); // Dependency for useCallback
 
   return (
     <Button
       type="button"
       variant="outline"
       className={`w-full h-10 ${
-        isListening ? "bg-red-50 border-red-500 text-red-600 animate-pulse" : "bg-blue-50 text-blue-600 hover:bg-blue-100"
+        isListening
+          ? "bg-red-50 border-red-500 text-red-600 animate-pulse"
+          : "bg-blue-50 text-blue-600 hover:bg-blue-100"
       }`}
       onClick={startListening}
-      disabled={voiceLoading}
+      disabled={isProcessing}
     >
-      {voiceLoading ? (
+      {isProcessing ? (
         <>
           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
           <span>Processing...</span>
