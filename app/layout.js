@@ -3,8 +3,8 @@ import "./globals.css";
 import Header from "@/components/header";
 import { ClerkProvider } from "@clerk/nextjs";
 import { Toaster } from "sonner";
-import aj from "@/lib/arcjet"; // Import Arcjet
-import { request } from "@arcjet/next"; // Import request helper
+import aj from "@/lib/arcjet";
+import { request } from "@arcjet/next";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -15,7 +15,6 @@ export const metadata = {
 
 export default async function RootLayout({ children }) {
   // --- Arcjet Security Check ---
-  // This runs on the server, avoiding the middleware size limit
   const req = await request();
   const decision = await aj.protect(req);
 
@@ -31,13 +30,14 @@ export default async function RootLayout({ children }) {
   // -----------------------------
 
   return (
-    
-      <html lang="en">
-        <head>
-          <link rel="icon" href="/logo-sm.png" sizes="any" />
-        </head>
-        <body className={`${inter.className}`}>
-          <ClerkProvider>
+    // ADDED: suppressHydrationWarning
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <link rel="icon" href="/logo-sm.png" sizes="any" />
+      </head>
+      {/* ADDED: suppressHydrationWarning */}
+      <body className={`${inter.className}`} suppressHydrationWarning>
+        <ClerkProvider>
           <Header />
           <main className="min-h-screen">{children}</main>
           <Toaster richColors />
@@ -46,8 +46,8 @@ export default async function RootLayout({ children }) {
               <p>Made with 💗 by Team-8</p>
             </div>
           </footer>
-    </ClerkProvider>
+        </ClerkProvider>
       </body>
-      </html>
+    </html>
   );
 }
