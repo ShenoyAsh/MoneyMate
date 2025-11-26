@@ -1,5 +1,5 @@
 "use client";
-
+import { VoiceScanner } from "./voice-scanner";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -94,17 +94,23 @@ export function AddTransactionForm({
     }
   };
 
-  const handleScanComplete = (scannedData) => {
-    if (scannedData) {
-      setValue("amount", scannedData.amount.toString());
-      setValue("date", new Date(scannedData.date));
-      if (scannedData.description) {
-        setValue("description", scannedData.description);
+ const handleScanComplete = (data) => {
+    if (data) {
+      setValue("amount", data.amount.toString());
+      setValue("date", new Date(data.date));
+      
+      if (data.description) {
+        setValue("description", data.description);
       }
-      if (scannedData.category) {
-        setValue("category", scannedData.category);
+      if (data.category) {
+        setValue("category", data.category);
       }
-      toast.success("Receipt scanned successfully");
+      // Add this line to handle the type from voice commands
+      if (data.type) {
+        setValue("type", data.type);
+      }
+      
+      toast.success("Transaction details updated");
     }
   };
 
@@ -129,9 +135,14 @@ export function AddTransactionForm({
   );
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-      {/* Receipt Scanner - Only show in create mode */}
-      {!editMode && <ReceiptScanner onScanComplete={handleScanComplete} />}
+   <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      {/* Replace the single ReceiptScanner line with this grid */}
+      {!editMode && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+          <ReceiptScanner onScanComplete={handleScanComplete} />
+          <VoiceScanner onScanComplete={handleScanComplete} />
+        </div>
+      )}
 
       {/* Type */}
       <div className="space-y-2">

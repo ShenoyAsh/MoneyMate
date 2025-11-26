@@ -1,5 +1,5 @@
 "use server";
-
+import { defaultCategories } from "@/data/categories";
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
@@ -310,4 +310,47 @@ function calculateNextRecurringDate(startDate, interval) {
   }
 
   return date;
+}
+
+export async function processVoiceCommand(command) {
+  try {
+    const { userId } = await auth();
+    if (!userId) throw new Error("Unauthorized");
+
+    // Use the fixed model name
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+    // Get categories to help AI match correctly
+    const categoriesList = defaultCategories.map((c) => c.id).join(", ");
+
+    const prompt = `
+      Analyze this financial voice command: "${command}"
+      Extract the following transaction details:
+      - amount: number (numeric value only)
+      - type: "INCOME" or "EXPENSE" (infer from keywords like "spent", "paid", "bought" vs "received", "earned", "deposit")
+      - category: match closely to one of these IDs: ${categoriesList}
+      - date: ISO string (calculate based on "today", "yesterday", or specific dates. Today is ${new Date().toISOString()})
+      - description: brief summary of the transaction
+
+      Respond ONLY with valid JSON in this format:
+      {
+        "amount": number,
+        "type": "INCOME" | "EXPENSE",
+        "category": "string",
+        "date": "ISO string",
+        "description": "string"
+      }
+    `;
+
+    const result = await model.generateContent(prompt);
+    const response = result.response;
+    const text = response.text();
+    // Clean up markdown formatting if present
+    const cleanedText = text.replace(/```(?:json)?\n?/g, "").trim();
+
+    return JSON.parse(cleanedText);
+  } catch (error) {
+    console.error("Voice command processing failed:", error);
+    throw new Error("Failed to process voice command");
+  }
 }
